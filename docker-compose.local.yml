@@ -1,0 +1,83 @@
+services:
+  selenium:
+    image: selenium/standalone-firefox:latest
+    container_name: selenium
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+    networks:
+      - main
+
+  db:
+    image: mysql:8.0    
+    container_name: db  
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 1m
+      timeout: 10s
+      retries: 3  
+    networks: 
+      - main
+    volumes:
+      - db_data:/var/lib/mysql
+
+  backend:
+    build:
+      context: ./inovamar
+    container_name: backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+    depends_on:
+      db: 
+        condition: service_healthy
+    env_file:
+      - ./envs/.env.backend
+    networks:
+      - main
+
+  scrapper:  
+    build:
+      context: ./public_calls_scrapping/src
+    container_name: scrapper
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/calls"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+    depends_on:
+      selenium:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - main
+
+  frontend:
+    build:
+      context: ./escritorio-de-projetos
+    container_name: frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      scrapper:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - main
+
+volumes:
+  db_data:
+
+networks:
+  main:
