@@ -9,40 +9,7 @@ services:
       retries: 3
     networks:
       - main
-
-  db:
-    image: mysql:8.0    
-    container_name: db  
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 1m
-      timeout: 10s
-      retries: 3  
-    networks: 
-      - main
-    volumes:
-      - db_data:/var/lib/mysql
-
-  backend:
-    image: mitugui/inovamar:backend
-    container_name: backend
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
-      interval: 1m
-      timeout: 10s
-      retries: 3
-    depends_on:
-      db: 
-        condition: service_healthy
-    env_file:
-      - ./envs/.env.backend
-    networks:
-      - main
+    restart: unless-stopped
 
   scrapper:  
     image: mitugui/inovamar:scrapper
@@ -55,26 +22,21 @@ services:
     depends_on:
       selenium:
         condition: service_healthy
-      backend:
-        condition: service_healthy
     networks:
       - main
+    restart: unless-stopped
 
   frontend:
     image: mitugui/inovamar:frontend
     container_name: frontend
     ports:
-      - "5173:5173"
+      - "127.0.0.1:8073:80"
     depends_on:
       scrapper:
         condition: service_healthy
-      backend:
-        condition: service_healthy
     networks:
       - main
-
-volumes:
-  db_data:
+    restart: unless-stopped
 
 networks:
   main:
