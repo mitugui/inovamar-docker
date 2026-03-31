@@ -37,6 +37,9 @@ services:
     networks:
       - main
     restart: unless-stopped
+    environment:
+      - API_HOST=scrapper
+      - API_PORT=5000
 
 networks:
   main:
